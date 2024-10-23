@@ -1,6 +1,7 @@
 # PopulationGenomics
 
-### Workflow Steps This workflow orchestrates a series of scripts for preprocessing, annotation, feature extraction, filtering, and summarizing variants.
+### Workflow Steps
+#### This workflow orchestrates a series of scripts for preprocessing, annotation, feature extraction, filtering, and summarizing variants.
 
 
 ### Preprocessing
@@ -10,7 +11,7 @@
 - **s2_Merge_annotation_vcf.R**: This R script merges AnnoVar/InterVar annotations.
 
 ### Feature Extraction
-- **s3_Extract_PLP_PTV_variants.R**: This R script extracts PLP and PTV variants on cancer genes based on ACMG/AMP guideline.
+- **s3_Extract_PLP_PTV_variants.R**: This R script extracts PLP and PTV variants on cancer genes based on ACMG/AMP guidelines.
 
 ### Filtering
 - **s4_Filtering.PLP_s1.sh**: This script filters PLP positions.
