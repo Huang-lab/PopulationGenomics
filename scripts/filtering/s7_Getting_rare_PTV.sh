@@ -14,7 +14,7 @@
 ml bcftools
 
 variants="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S6_Filtered_ACMG32_truncations_PTV/s6_Sema4_Filtered_ACMG32_truncations_PTV.vcf.gz"
-chromosome=$1
+
 vcf_in="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S5_Filtered_AF005/s5_Filtered_AF_chrALL.sort.vcf.gz"
 vcf_out="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/S7_Filtered_ACMG32_truncations005_chrALL.vcf.gz"
 
