@@ -5,7 +5,7 @@ library(xlsx)
 
 ann <- read_delim('/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s2_Merge_intervar_annovar_multianno.txt', delim = '\t', col_types = cols())
 
-cols_keep <- c('Chr', 'Start', 'Ref', 'Alt', 'Ref.Gene', 'InterVar_automated', 'CLNSIG', 'ExonicFunc.refGene', 'Func.refGene', 'ExonicFunc.knownGene')
+cols_keep <- c('Chr', 'Start', 'Ref', 'Alt', 'Gene.refGene', 'InterVar_automated', 'CLNSIG', 'ExonicFunc.refGene', 'Func.refGene', 'ExonicFunc.knownGene')
 ann_subset <- ann[, cols_keep]
 colnames(ann_subset) <- c('#CHROM', 'POS', 'REF', 'ALT', 'Ref.Gene', 'InterVar_automated', 'CLNSIG', 'ExonicFunc_refGene', 'Func_refGene', 'ExonicFunc_knownGene')
 
