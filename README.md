@@ -5,7 +5,7 @@
 
 
 ### Preprocessing
-- **scripts/preprocessing/s1_run_intjob.sh**: This script runs AnnoVar/InterVar the initial job for Mount Sinai BioMe cohort II (Sema4).
+- **scripts/preprocessing/s1_run_intjob.sh**: This script runs AnnoVar/InterVar the initial job for Mount Sinai BioMe cohort II.
 
 ### Annotation
 - **scripts/preprocessing/s2_Merge_annotation_vcf.R**: This R script merges AnnoVar/InterVar annotations.
