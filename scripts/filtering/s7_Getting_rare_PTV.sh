@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J s7_Getting_rare_PTV
 #BSUB -P acc_DiseaseGeneCell
@@ -18,9 +19,9 @@ variants="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S6_Filtered_ACMG
 vcf_in="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S5_Filtered_AF005/s5_Filtered_AF_chrALL.sort.vcf.gz"
 vcf_out="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/S7_Filtered_ACMG32_truncations005_chrALL.vcf.gz"
 
-bcftools index $vcf_in
-bcftools view -R $variants $vcf_in -o $vcf_out
-bcftools index $vcf_out
+bcftools index "$vcf_in"
+bcftools view -R "$variants" "$vcf_in" -o "$vcf_out"
+bcftools index "$vcf_out"
 
 #2nd filtering
 export input_vcf="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/S7_Filtered_ACMG32_truncations005_chrALL.vcf.gz"
