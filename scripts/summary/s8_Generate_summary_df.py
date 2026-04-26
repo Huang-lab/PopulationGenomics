@@ -54,18 +54,37 @@ def annotate_vcf_with_gene(vcf_df, gene_info, output_path):
 
 
 
+def is_carrier(genotype):
+    """Return 1 if the sample carries at least one alt allele, else 0.
+
+    Handles unphased ('/') and phased ('|') genotypes, missing calls ('.'),
+    and the FORMAT field's colon-separated extras. Hom-alt ('1/1', '1|1') and
+    multi-allelic alt indices ('1/2') all count as carriers.
+    """
+    if genotype is None:
+        return 0
+    gt = str(genotype).split(':', 1)[0]
+    if not gt or gt == '.':
+        return 0
+    alleles = gt.replace('|', '/').split('/')
+    for a in alleles:
+        if a not in ('', '.', '0'):
+            return 1
+    return 0
+
+
 def process_vcf(vcf_df, tag, patient_info_df):
     # Drop redundant columns
     df = vcf_df.drop(columns=['QUAL', 'ID', 'FILTER', 'INFO', 'FORMAT'])
-    
+
     # Melt the DataFrame to unpivot the patient columns
     df_melted = df.melt(id_vars=['#CHROM', 'POS', 'REF', 'ALT', 'Ref.Gene'], var_name='PatientID', value_name='Genotype')
-    
+
     # Convert 'PatientID' to string for comparison
     df_melted['PatientID'] = df_melted['PatientID'].astype(str)
-    
+
     # Identify carriers
-    df_melted['Carrier'] = df_melted['Genotype'].apply(lambda x: 1 if '0/1' in str(x).split(':')[0] else 0)
+    df_melted['Carrier'] = df_melted['Genotype'].apply(is_carrier)
     
     # Filter to keep only rows where Carrier is greater than 0
     df_melted_carrier = df_melted[df_melted['Carrier'] > 0]
@@ -138,58 +157,39 @@ def create_summary_table(plp_vcf_path, ptv_vcf_path, patient_info_df):
 
 
 
-#start
-#read plp,ptv vcf
-plp_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s4_2nd_filter_PLP.vcf'
-ptv_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/ACMG32_AF005_PTV_2ndfiltered.vcf'
-plp_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene.predis.plp.txt'
-ptv_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene_truncations.txt'
+def main():
+    plp_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s4_2nd_filter_PLP.vcf'
+    ptv_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/ACMG32_AF005_PTV_2ndfiltered.vcf'
+    plp_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene.predis.plp.txt'
+    ptv_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene_truncations.txt'
+    patient_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/metadata/Sema4_HX_WXS_Newgroups.tsv'
+    output_dir = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/testout'
 
-patient_info_path='/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/metadata/Sema4_HX_WXS_Newgroups.tsv'
+    import os
+    os.makedirs(output_dir, exist_ok=True)
 
-output_dir = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/testout'
+    plp_vcf_df = read_vcf_to_dataframe(plp_vcf_path)
+    ptv_vcf_df = read_vcf_to_dataframe(ptv_vcf_path)
+    plp_gene_info = load_gene_info(plp_gene_info_path)
+    ptv_gene_info = load_gene_info(ptv_gene_info_path)
+    patient_info_df = pd.read_csv(patient_info_path, sep='\t')
 
+    plp_annotated_path = f"{output_dir}/plp_annotated.vcf"
+    ptv_annotated_path = f"{output_dir}/ptv_annotated.vcf"
 
+    annotate_vcf_with_gene(plp_vcf_df, plp_gene_info, plp_annotated_path)
+    annotate_vcf_with_gene(ptv_vcf_df, ptv_gene_info, ptv_annotated_path)
 
+    plp_sum, ptv_sum, summary_df = create_summary_table(
+        plp_annotated_path, ptv_annotated_path, patient_info_df
+    )
 
-
-plp_vcf_df = read_vcf_to_dataframe(plp_vcf_path)
-ptv_vcf_df = read_vcf_to_dataframe(ptv_vcf_path)
-plp_gene_info = load_gene_info(plp_gene_info_path)
-ptv_gene_info = load_gene_info(ptv_gene_info_path)
-patient_info_df = pd.read_csv(patient_info_path, sep='\t')
-
-
-
-
-# Annotate VCFs and save
-plp_annotated_path = f"{output_dir}/plp_annotated.vcf"
-ptv_annotated_path = f"{output_dir}/ptv_annotated.vcf"
-
-plp_vcf_df = annotate_vcf_with_gene(plp_vcf_df, plp_gene_info,  plp_annotated_path)
-ptv_vcf_df = annotate_vcf_with_gene(ptv_vcf_df, ptv_gene_info,  ptv_annotated_path)
-
-
+    ptv_sum.to_csv(f"{output_dir}/summary.ptv.tsv", sep='\t', index=False)
+    plp_sum.to_csv(f"{output_dir}/summary.plp.tsv", sep='\t', index=False)
+    summary_df.to_csv(f"{output_dir}/combined_summary.tsv", sep='\t', index=False)
 
 
-
-plp_sum, ptv_sum, summary_df = create_summary_table(plp_annotated_path, ptv_annotated_path, patient_info_df)
-
-
-
-
-
-ptv_sum.to_csv(f"{output_dir}/summary.ptv.tsv", sep='\t', index=False)
-plp_sum.to_csv(f"{output_dir}/summary.plp.tsv", sep='\t', index=False)
-
-
-
-
-
-summary_df.to_csv(f"{output_dir}/combined_summary.tsv", sep='\t', index=False)
-
-
-
-
+if __name__ == "__main__":
+    main()
 
 

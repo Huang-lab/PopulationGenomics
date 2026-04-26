@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.Rhistory
+.RData
+*.stdout
+*.stderr
+out/
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.vcf.gz.csi
