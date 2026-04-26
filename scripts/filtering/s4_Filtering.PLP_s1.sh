@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J s4_Filtering_PLP_s1
 #BSUB -P acc_DiseaseGeneCell
@@ -11,11 +12,10 @@
 #BSUB -eo s4_Filtering_PLP_s1.stderr
 #BSUB -L /bin/bash
 
-ssh regen2
 ml bcftools
 
 variants='/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene.predis.plp.txt'
 vcf_in="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/data/BioMe_Sema4_WES.vcf.gz"
-vcf_out="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s4_BioMe_Sema4_FilterExomesByPre.PLP.vcf
+vcf_out="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s4_BioMe_Sema4_FilterExomesByPre.PLP.vcf"
 
-bcftools view -R $variants $vcf_in > $vcf_out
+bcftools view -R "$variants" "$vcf_in" > "$vcf_out"
