@@ -20,7 +20,7 @@ acm <- acm[acm$Phenotype.Category == 'Cancer', ]
 ann_plp_predis_cancer <- ann_plp[ann_plp$Ref.Gene %in% acm$Gene, ]
 write_delim(ann_plp_predis_cancer, '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene.predis.plp.txt', delim = '\t')
 
-ann_tru <- ann_subset[(ann_subset$ExonicFunc.refGene %in% c('nonframeshift deletion', 'nonframeshift insertion', 'frameshift deletion', 'frameshift insertion', 'stopgain', 'stoploss', 'startloss')) | (ann_subset$Func.refGene %in% c('exonic;splicing', 'ncRNA_exonic;splicing', 'ncRNA_splicing', 'splicing')), ]
+ann_tru <- ann_subset[(ann_subset$ExonicFunc_refGene %in% c('nonframeshift deletion', 'nonframeshift insertion', 'frameshift deletion', 'frameshift insertion', 'stopgain', 'stoploss', 'startloss')) | (ann_subset$Func_refGene %in% c('exonic;splicing', 'ncRNA_exonic;splicing', 'ncRNA_splicing', 'splicing')), ]
 
 conflict_list <- c('Benign PVS1=0', 'Benign PVS1=1', 'Likely benign PVS1=0', 'Likely benign PVS1=1', 'Likely benign', 'Benign', 'Benign/Likely_benign', 'Likely_benign', 'Benign', 'benign', 'likely_benign', 'Likely_Benign', 'Likely_benign/Benign')
 

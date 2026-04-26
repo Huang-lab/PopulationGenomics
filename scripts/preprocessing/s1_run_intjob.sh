@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J s1_run_intjob_sema4
 #BSUB -P acc_DiseaseGeneCell
@@ -18,7 +19,7 @@ datafolder=/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/data
 outfolder=/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out
 
 for filename in /sc/arion/projects/rg_huangk06/variants_PLP_BioMe/data/*.vcf.gz; do
-    if [[ "${procd[*]}" =~ "$(basename "$filename").avinput" ]]; then
+    if [[ " ${procd[*]} " =~ " $(basename "$filename").avinput " ]]; then
         echo "$(basename "$filename") ---- done!"
     else
         echo "$(basename "$filename") ---- PROCESSING..."

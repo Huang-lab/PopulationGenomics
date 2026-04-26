@@ -69,4 +69,9 @@ def main(scripts=PIPELINE, runner=subprocess.run) -> list[int]:
 
 
 if __name__ == "__main__":
-    sys.exit(0 if main() else 1)
+    try:
+        main()
+        sys.exit(0)
+    except Exception as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
