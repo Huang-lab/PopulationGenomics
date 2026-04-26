@@ -58,10 +58,11 @@ def filter_vcf(vcf_file, annovar_variants, output_vcf_path):
                 continue
             parts = line.strip().split('\t')
             chrom, pos, _, ref, alts = parts[:5]
-            alt = alts.split(',')[0]
-            transformed_ref, transformed_alt = transform_for_annovarV2(ref, alt)
-            if (chrom, pos, transformed_ref, transformed_alt) in annovar_variants:
-                out_vcf.write(line)
+            for alt in alts.split(','):
+                transformed_ref, transformed_alt = transform_for_annovarV2(ref, alt)
+                if (chrom, pos, transformed_ref, transformed_alt) in annovar_variants:
+                    out_vcf.write(line)
+                    break
 
 
 def main():

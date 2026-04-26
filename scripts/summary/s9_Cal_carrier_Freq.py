@@ -5,14 +5,16 @@ from pathlib import Path
 
 import pandas as pd
 
-def calculate_carrier_frequencies(summary_df, patient_info_df):
+
+def calculate_carrier_frequencies(summary_df, patient_info_df, tag):
     """
     Calculates carrier frequencies at various levels (group, gene, ancestry, and ancestry-gene).
-    
+
     Args:
     summary_df (DataFrame): Summary DataFrame containing variant information.
     patient_info_df (DataFrame): DataFrame containing patient information.
-    
+    tag (str): Label for this set of variants (e.g. 'plp' or 'ptv').
+
     Returns:
     dict: Dictionary with DataFrames for each frequency type.
     """
@@ -31,7 +33,7 @@ def calculate_carrier_frequencies(summary_df, patient_info_df):
     group_freq['Num_samples'] = group_freq['Group'].map(total_by_group)
     group_freq['Num_noncarriers'] = group_freq['Num_samples'] - group_freq['Num_carriers']
     group_freq['Carrier_Freq'] = group_freq.apply(lambda row: calc_frequency(row['Num_carriers'], row['Num_samples']), axis=1)
-    group_freq['Tag'] = summary_df['Tag'].iloc[0]  # Assuming all rows have the same tag
+    group_freq['Tag'] = tag
     group_freq = group_freq.sort_values('Carrier_Freq', ascending=False)
 
     # 2. Gene-level by Group
@@ -39,7 +41,7 @@ def calculate_carrier_frequencies(summary_df, patient_info_df):
     gene_group_freq['Num_samples'] = gene_group_freq['Group'].map(total_by_group)
     gene_group_freq['Num_noncarriers'] = gene_group_freq['Num_samples'] - gene_group_freq['Num_carriers']
     gene_group_freq['Carrier_Freq'] = gene_group_freq.apply(lambda row: calc_frequency(row['Num_carriers'], row['Num_samples']), axis=1)
-    gene_group_freq['Tag'] = summary_df['Tag'].iloc[0]
+    gene_group_freq['Tag'] = tag
     gene_group_freq = gene_group_freq.sort_values(['Gene', 'Carrier_Freq'], ascending=[True, False])
 
     # 3. Ancestry level by Group
@@ -49,7 +51,7 @@ def calculate_carrier_frequencies(summary_df, patient_info_df):
     ancestry_group_freq['Num_carriers'] = ancestry_group_freq['Num_carriers'].astype(int)
     ancestry_group_freq['Num_noncarriers'] = ancestry_group_freq['Num_samples'] - ancestry_group_freq['Num_carriers']
     ancestry_group_freq['Carrier_Freq'] = ancestry_group_freq.apply(lambda row: calc_frequency(row['Num_carriers'], row['Num_samples']), axis=1)
-    ancestry_group_freq['Tag'] = summary_df['Tag'].iloc[0]
+    ancestry_group_freq['Tag'] = tag
     ancestry_group_freq = ancestry_group_freq.sort_values(['genetically_determined', 'Group', 'Carrier_Freq'], ascending=[True, True, False])
 
     # 4. Ancestry-gene level by Group
@@ -57,7 +59,7 @@ def calculate_carrier_frequencies(summary_df, patient_info_df):
     ancestry_gene_group_freq = ancestry_gene_group_freq.merge(total_by_ancestry_group, on=['genetically_determined', 'Group'], how='left')
     ancestry_gene_group_freq['Num_noncarriers'] = ancestry_gene_group_freq['Num_samples'] - ancestry_gene_group_freq['Num_carriers']
     ancestry_gene_group_freq['Carrier_Freq'] = ancestry_gene_group_freq.apply(lambda row: calc_frequency(row['Num_carriers'], row['Num_samples']), axis=1)
-    ancestry_gene_group_freq['Tag'] = summary_df['Tag'].iloc[0]
+    ancestry_gene_group_freq['Tag'] = tag
     ancestry_gene_group_freq = ancestry_gene_group_freq.sort_values(['genetically_determined', 'Group', 'Gene', 'Carrier_Freq'], ascending=[True, True, True, False])
 
     return {
@@ -86,7 +88,7 @@ def main():
     summary_df_ptv = summary_df[summary_df['Tag'].isin(['PTV', 'PLP & PTV'])]
 
     for tag, df_tag in {'plp': summary_df_plp, 'ptv': summary_df_ptv}.items():
-        frequencies = calculate_carrier_frequencies(df_tag, patient_info_df)
+        frequencies = calculate_carrier_frequencies(df_tag, patient_info_df, tag)
         for name, df in frequencies.items():
             output_file_path = output_dir / f"{name}_frequencies_{tag}.tsv"
             df.to_csv(output_file_path, sep='\t', index=False)

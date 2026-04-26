@@ -24,4 +24,4 @@ vcf_in="${DATA_DIR}/${INPUT_VCF_BASENAME}.vcf.gz"
 vcf_out="${OUT_DIR}/S6_Filtered_ACMG32_truncations_PTV/s6_Sema4_Filtered_ACMG32_truncations_PTV.vcf.gz"
 
 mkdir -p "$(dirname "$vcf_out")"
-bcftools view -R "$variants" "$vcf_in" > "$vcf_out"
+bcftools view -R "$variants" "$vcf_in" | bgzip -c > "$vcf_out"
