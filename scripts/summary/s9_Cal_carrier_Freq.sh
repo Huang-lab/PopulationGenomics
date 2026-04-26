@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J Cal_freq_df.lsf
 #BSUB -P acc_DiseaseGeneCell
@@ -12,8 +13,12 @@
 #BSUB -eo Cal_freq_df.stderr
 #BSUB -L /bin/bash
 
-
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
 
 ml python
 
+cd "${REPO_ROOT}"
 python scripts/summary/s9_Cal_carrier_Freq.py

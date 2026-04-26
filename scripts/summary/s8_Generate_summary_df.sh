@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J Generate_summary_df.lsf
 #BSUB -P acc_DiseaseGeneCell
@@ -12,8 +13,12 @@
 #BSUB -eo Generate_summary_df.stderr
 #BSUB -L /bin/bash
 
-
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
 
 ml python
 
+cd "${REPO_ROOT}"
 python scripts/summary/s8_Generate_summary_df.py

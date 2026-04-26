@@ -1,5 +1,9 @@
-import pandas as pd
+import logging
 import os
+import sys
+from pathlib import Path
+
+import pandas as pd
 
 def calculate_carrier_frequencies(summary_df, patient_info_df):
     """
@@ -64,29 +68,30 @@ def calculate_carrier_frequencies(summary_df, patient_info_df):
     }
 
 
-# Usage in main function
-output_dir2 = '~/Desktop/testpy'
+def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    log = logging.getLogger("s9")
 
-patient_info_path = '~/Desktop/testpy/Sema4_HX_WXS_Newgroups.tsv'
-patient_info_df = pd.read_csv(patient_info_path, sep='\t')
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    import config
 
-# Read summary files for both tags
-summary_df = pd.read_csv(f'{output_dir2}/combined_summary.tsv', sep='\t')
+    paths = config.stage8_paths()
+    output_dir = paths.output_dir
+    os.makedirs(output_dir, exist_ok=True)
 
-# Filter by tag
-summary_df_plp = summary_df[(summary_df['Tag'] == 'PLP') | (summary_df['Tag'] == 'PLP & PTV')]
-summary_df_ptv = summary_df[(summary_df['Tag'] == 'PTV') | (summary_df['Tag'] == 'PLP & PTV')]
+    patient_info_df = pd.read_csv(paths.patient_info, sep='\t')
+    summary_df = pd.read_csv(output_dir / "combined_summary.tsv", sep='\t')
 
-tags = {'plp': summary_df_plp, 'ptv': summary_df_ptv}
+    summary_df_plp = summary_df[summary_df['Tag'].isin(['PLP', 'PLP & PTV'])]
+    summary_df_ptv = summary_df[summary_df['Tag'].isin(['PTV', 'PLP & PTV'])]
 
-for tag, df_tag in tags.items():
-    # Calculate frequencies
-    frequencies = calculate_carrier_frequencies(df_tag, patient_info_df)
-    
-    # Save results
-    for name, df in frequencies.items():
-        output_file_path = os.path.join(output_dir2, f"{name}_frequencies_{tag}.tsv")
-        df.to_csv(output_file_path, sep='\t', index=False)
-        print(f"Saved {name} frequencies for {tag} to {output_file_path}")
+    for tag, df_tag in {'plp': summary_df_plp, 'ptv': summary_df_ptv}.items():
+        frequencies = calculate_carrier_frequencies(df_tag, patient_info_df)
+        for name, df in frequencies.items():
+            output_file_path = output_dir / f"{name}_frequencies_{tag}.tsv"
+            df.to_csv(output_file_path, sep='\t', index=False)
+            log.info("saved %s frequencies for %s to %s", name, tag, output_file_path)
 
 
+if __name__ == "__main__":
+    main()

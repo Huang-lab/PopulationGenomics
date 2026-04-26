@@ -12,12 +12,16 @@ set -euo pipefail
 #BSUB -eo s5b_Concat_filtered_chroms.stderr
 #BSUB -L /bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
+
 ml bcftools
 
-out_dir="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S5_Filtered_AF005"
+out_dir="${OUT_DIR}/S5_Filtered_AF005"
 cd "$out_dir"
 
-export TMPDIR="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/scripts/tmp"
 mkdir -p "$TMPDIR"
 
 bcftools concat s5_Filtered_AF_chr*.vcf.gz -Oz -o s5_Filtered_AF_chrALL.vcf.gz
