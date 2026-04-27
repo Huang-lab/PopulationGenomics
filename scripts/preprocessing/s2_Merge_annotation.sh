@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J s2_Merge_annotation_w_genotypes_vcf
 #BSUB -P acc_DiseaseGeneCell
@@ -11,4 +12,10 @@
 #BSUB -eo s2_Merge_annotation_w_genotypes_vcf.stderr
 #BSUB -L /bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
+
+cd "${REPO_ROOT}"
 Rscript scripts/preprocessing/s2_Merge_annotation.R

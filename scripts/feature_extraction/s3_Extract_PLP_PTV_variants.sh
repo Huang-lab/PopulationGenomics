@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 #BSUB -J s3_Extract_PLP_PTV_variants
 #BSUB -P acc_DiseaseGeneCell
@@ -11,4 +12,10 @@
 #BSUB -eo s3_Extract_PLP_PTV_variants.stderr
 #BSUB -L /bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
+
+cd "${REPO_ROOT}"
 Rscript scripts/feature_extraction/s3_Extract_PLP_PTV_variants.R

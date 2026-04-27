@@ -12,6 +12,11 @@ set -euo pipefail
 #BSUB -eo s5_Retain_rareSite_inVCF_filterbyAF_%I.stderr
 #BSUB -L /bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/config.sh"
+
 ml bcftools
 
 # Map LSF array index 1..24 to chromosomes 1..22, X (23), Y (24).
@@ -22,9 +27,9 @@ case "$idx" in
     *)  chromosome="$idx" ;;
 esac
 
-vcf_in="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/data/chromosome/split.${chromosome}.vcf.gz"
-vcf_out_dir="/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S5_Filtered_AF005"
+vcf_in="${CHROM_DIR}/split.${chromosome}.vcf.gz"
+vcf_out_dir="${OUT_DIR}/S5_Filtered_AF005"
 vcf_out="${vcf_out_dir}/s5_Filtered_AF_chr${chromosome}.vcf.gz"
 
 mkdir -p "$vcf_out_dir"
-bcftools view --max-af 0.0005 "$vcf_in" | bgzip -c > "$vcf_out"
+bcftools view --max-af "${AF_THRESHOLD}" "$vcf_in" | bgzip -c > "$vcf_out"

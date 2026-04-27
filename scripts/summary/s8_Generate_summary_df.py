@@ -3,10 +3,11 @@
 
 
 
-import pandas as pd
-import numpy as np
 import gzip
-from collections import defaultdict
+import logging
+from pathlib import Path
+
+import pandas as pd
 
 
 def read_vcf_to_dataframe(path_vcf):
@@ -28,27 +29,32 @@ def load_gene_info(file_path):
     return dict(zip(zip(gene_info['#CHROM'], gene_info['POS']), gene_info['Ref.Gene']))
 
 def annotate_vcf_with_gene(vcf_df, gene_info, output_path):
-    """
-    Annotates a VCF DataFrame with Ref.Gene information.
-    
-    Args:
-    vcf_df (DataFrame): VCF DataFrame to annotate.
-    gene_info (dict): Dictionary with (CHROM, POS) as keys and Ref.Gene as values.
-    
-    Returns:
-    DataFrame: Annotated VCF DataFrame.
-    """
-    vcf_df['Ref.Gene'] = vcf_df.apply(lambda row: gene_info.get((row['#CHROM'], row['POS']), '.'), axis=1)
-    
-    #reorder cols
-    last_col = vcf_df.pop(vcf_df.columns[-1])
+    """Add a Ref.Gene column from a (CHROM, POS) -> gene mapping.
 
+    Args:
+        vcf_df: VCF DataFrame to annotate.
+        gene_info: dict keyed by (CHROM, POS) returning the gene symbol.
+        output_path: where to write the annotated TSV.
+
+    Returns:
+        The annotated DataFrame, with Ref.Gene placed at column index 5
+        (right after CHROM/POS/ID/REF/ALT). Missing positions get '.'.
+    """
+    if gene_info:
+        gene_df = pd.DataFrame(
+            [(c, p, g) for (c, p), g in gene_info.items()],
+            columns=['#CHROM', 'POS', 'Ref.Gene'],
+        )
+        vcf_df = vcf_df.merge(gene_df, on=['#CHROM', 'POS'], how='left')
+    else:
+        vcf_df = vcf_df.copy()
+        vcf_df['Ref.Gene'] = pd.NA
+    vcf_df['Ref.Gene'] = vcf_df['Ref.Gene'].fillna('.')
+
+    last_col = vcf_df.pop(vcf_df.columns[-1])
     vcf_df.insert(5, last_col.name, last_col)
 
-    
-    vcf_df.to_csv(output_path, sep='\t',index=False)
-    print(f"Annotated VCF saved to {output_path}")
-    
+    vcf_df.to_csv(output_path, sep='\t', index=False)
     return vcf_df
 
 
@@ -109,11 +115,11 @@ def create_summary_table(plp_vcf_path, ptv_vcf_path, patient_info_df):
     plp_vcf_df = read_vcf_to_dataframe(plp_vcf_path)
     ptv_vcf_df = read_vcf_to_dataframe(ptv_vcf_path)
     
-    # Process VCF files
-    print("Processing PLP VCF...")
+    log = logging.getLogger("s8")
+    log.info("processing PLP VCF")
     plp_results = process_vcf(plp_vcf_df, 'PLP', patient_info_df)
-    
-    print("Processing PTV VCF...")
+
+    log.info("processing PTV VCF")
     ptv_results = process_vcf(ptv_vcf_df, 'PTV', patient_info_df)
     
     # Combine results
@@ -135,11 +141,13 @@ def create_summary_table(plp_vcf_path, ptv_vcf_path, patient_info_df):
     # Add PLPorPTV_carrier column
     #all_results['PLPorPTV_carrier'] = 'Carrier'
     
-    # Ensure specified columns are strings
+    # Ensure specified columns are strings. The cohort schema uses 'Group'
+    # for the cohort label and 'genetically_determined' for ancestry; keep
+    # both in sync with s9_Cal_carrier_Freq.py.
     string_columns = [
-        'PERS_HX_SMOKING', 'PERS_HX_CANCER', 'FAMILY_HX_CANCER', 'PersHisMN', 
-        'FamHisPMN', 'Group_Classification', 'PLPorPTV_carrier', 'Tag', 
-        'MASKED_MRN', 'PatientID'
+        'PERS_HX_SMOKING', 'PERS_HX_CANCER', 'FAMILY_HX_CANCER', 'PersHisMN',
+        'FamHisPMN', 'Group', 'genetically_determined', 'Tag',
+        'MASKED_MRN', 'PatientID',
     ]
     for col in string_columns:
         if col in all_results.columns:
@@ -158,35 +166,41 @@ def create_summary_table(plp_vcf_path, ptv_vcf_path, patient_info_df):
 
 
 def main():
-    plp_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s4_2nd_filter_PLP.vcf'
-    ptv_vcf_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/S7_Filtered_ACMG32_truncations005/ACMG32_AF005_PTV_2ndfiltered.vcf'
-    plp_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene.predis.plp.txt'
-    ptv_gene_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/s3_ACMG32_cancer_gene_truncations.txt'
-    patient_info_path = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/metadata/Sema4_HX_WXS_Newgroups.tsv'
-    output_dir = '/sc/arion/projects/rg_huangk06/variants_PLP_BioMe/out/testout'
-
+    import logging
     import os
-    os.makedirs(output_dir, exist_ok=True)
+    import sys
 
-    plp_vcf_df = read_vcf_to_dataframe(plp_vcf_path)
-    ptv_vcf_df = read_vcf_to_dataframe(ptv_vcf_path)
-    plp_gene_info = load_gene_info(plp_gene_info_path)
-    ptv_gene_info = load_gene_info(ptv_gene_info_path)
-    patient_info_df = pd.read_csv(patient_info_path, sep='\t')
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    log = logging.getLogger("s8")
 
-    plp_annotated_path = f"{output_dir}/plp_annotated.vcf"
-    ptv_annotated_path = f"{output_dir}/ptv_annotated.vcf"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    import config
 
-    annotate_vcf_with_gene(plp_vcf_df, plp_gene_info, plp_annotated_path)
-    annotate_vcf_with_gene(ptv_vcf_df, ptv_gene_info, ptv_annotated_path)
+    paths = config.stage8_paths()
+    os.makedirs(paths.output_dir, exist_ok=True)
+
+    log.info("reading PLP VCF: %s", paths.plp_vcf)
+    plp_vcf_df = read_vcf_to_dataframe(str(paths.plp_vcf))
+    log.info("reading PTV VCF: %s", paths.ptv_vcf)
+    ptv_vcf_df = read_vcf_to_dataframe(str(paths.ptv_vcf))
+    plp_gene_info = load_gene_info(str(paths.plp_gene_info))
+    ptv_gene_info = load_gene_info(str(paths.ptv_gene_info))
+    patient_info_df = pd.read_csv(paths.patient_info, sep='\t')
+
+    plp_annotated_path = paths.output_dir / "plp_annotated.vcf"
+    ptv_annotated_path = paths.output_dir / "ptv_annotated.vcf"
+
+    annotate_vcf_with_gene(plp_vcf_df, plp_gene_info, str(plp_annotated_path))
+    annotate_vcf_with_gene(ptv_vcf_df, ptv_gene_info, str(ptv_annotated_path))
 
     plp_sum, ptv_sum, summary_df = create_summary_table(
-        plp_annotated_path, ptv_annotated_path, patient_info_df
+        str(plp_annotated_path), str(ptv_annotated_path), patient_info_df
     )
 
-    ptv_sum.to_csv(f"{output_dir}/summary.ptv.tsv", sep='\t', index=False)
-    plp_sum.to_csv(f"{output_dir}/summary.plp.tsv", sep='\t', index=False)
-    summary_df.to_csv(f"{output_dir}/combined_summary.tsv", sep='\t', index=False)
+    ptv_sum.to_csv(paths.output_dir / "summary.ptv.tsv", sep='\t', index=False)
+    plp_sum.to_csv(paths.output_dir / "summary.plp.tsv", sep='\t', index=False)
+    summary_df.to_csv(paths.output_dir / "combined_summary.tsv", sep='\t', index=False)
+    log.info("wrote summary outputs to %s", paths.output_dir)
 
 
 if __name__ == "__main__":
